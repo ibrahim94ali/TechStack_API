@@ -1,7 +1,7 @@
 const express = require("express");
 const { graphqlHTTP } = require("express-graphql");
 const { GraphQLInt, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType } = require("graphql");
-let { technologies, people } = require("./data");
+let { technologies, people, posts } = require("./data");
 
 const app = express();
 
@@ -28,6 +28,25 @@ const TechType = new GraphQLObjectType({
         people: {
             type: GraphQLList(PersonType), 
             resolve: (tech) => people.filter(person => person.techIds.includes(tech.id))
+        },
+        posts: {
+            type: GraphQLList(PostType),
+            resolve: (tech) => posts.filter(post => post.techId === tech.id)
+        }
+    })
+})
+
+const PostType = new GraphQLObjectType({
+    name: 'Post',
+    description: 'This is a post',
+    fields: () => ({
+        id: {type: GraphQLNonNull(GraphQLInt)},
+        title: {type: GraphQLNonNull(GraphQLString)},
+        link: {type: GraphQLNonNull(GraphQLString)},
+        techId: {type: GraphQLNonNull(GraphQLInt)},
+        technology: {
+            type: TechType,
+            resolve: (post) => technologies.find(tech => tech.id === post.id)
         }
     })
 })
@@ -63,6 +82,17 @@ const RootQueryType = new GraphQLObjectType({
                 },
                 resolve: (_, args) => technologies.find(tech => tech.id === args.id)
 
+            },
+            posts: {
+                type: new GraphQLList(PostType),
+                description: 'List of all posts',
+                resolve: () => posts
+            },
+            post: {
+                type: PostType,
+                description: 'Single post',
+                args: {id: {type: GraphQLNonNull(GraphQLInt)}},
+                resolve: (_, {id}) => posts.find(post => post.id === id)
             }
         }
     )
@@ -165,6 +195,58 @@ const RootMutationType = new GraphQLObjectType({
                     return tech;
                 }
             },
+            addPost: {
+                type: PostType,
+                description: 'Add a new post',
+                args: {
+                    title: {type: GraphQLNonNull(GraphQLString)},
+                    link: {type: GraphQLNonNull(GraphQLString)},
+                    techId: {type: GraphQLNonNull(GraphQLInt)}
+                },
+                resolve: (_, {title, link, techId}) => {
+                    const post = {
+                        id: posts.length + 1,
+                        title,
+                        link,
+                        techId
+                    };
+                    posts.push(post);
+                    return post;
+                }
+            },
+            updatePost: {
+                type: PostType,
+                description: 'Updating a post',
+                args: {
+                    id: {type: GraphQLNonNull(GraphQLInt)},
+                    title: {type: GraphQLString},
+                    link: {type: GraphQLString},
+                    techId: {type: GraphQLInt},
+                },
+                resolve: (_, {id, title, link, techId}) => {
+                    const postIndex = posts.findIndex(post => post.id === id);
+                    posts[postIndex] = {
+                        id,
+                        title: title || posts[postIndex].title,
+                        link: link || posts[postIndex].link,
+                        techId: techId || posts[postIndex].techId
+                    };
+                    return posts[postIndex];
+                }
+            },
+            deletePost: {
+                type: PostType,
+                description: 'Delete a post',
+                args: {
+                    id: {type: GraphQLNonNull(GraphQLInt)}
+                },
+                resolve: (_, {id}) => {
+                    const postIndex = posts.findIndex(post => post.id === id);
+                    const post = posts[postIndex];
+                    posts = [...posts.slice(0, postIndex), ...posts.slice(postIndex + 1)];
+                    return post;
+                }
+            }
         }
     )
 })

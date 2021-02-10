@@ -77,3 +77,18 @@ exports.technologies = [
         name: 'Cuba',
     }
 ];
+
+exports.posts = [
+    {
+        id: 1,
+        title: 'Angular Forms',
+        link: 'www.google.com',
+        techId: 1
+    },
+    {
+        id: 2,
+        title: 'React Hooks',
+        link: 'www.facebook.com',
+        techId: 2
+    }
+];
