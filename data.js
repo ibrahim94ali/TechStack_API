@@ -1,79 +1,79 @@
-exports.players = [
+exports.people = [
     {
         id: 1,
-        name: 'Lionel Messi',
-        teamId: 1
+        name: 'Ibrahim Aliu',
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 2,
         name: 'Cristiano Ronaldo',
-        teamId: 2
+        techIds: [2, 3, 4, 6]
     },
     {
         id: 3,
         name: 'Manuel Neuer',
-        teamId: 3
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 4,
         name: 'Mesut Ozil',
-        teamId: 4
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 5,
         name: 'Pablo Dybala',
-        teamId: 2
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 6,
         name: 'Ansu Fati',
-        teamId: 1
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 7,
         name: 'Sergio Ramos',
-        teamId: 5
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 8,
         name: 'Karim Benzema',
-        teamId: 5
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 9,
         name: 'Luka Modric',
-        teamId: 5
+        techIds: [1, 2, 4, 5]
     },
     {
         id: 10,
         name: 'Gareth Bale',
-        teamId: 6
+        techIds: [1, 2, 4, 5]
     },
 ];
 
-exports.teams = [
+exports.technologies = [
     {
         id: 1,
-        name: 'Barcelona',
+        name: 'Angular',
     },
     {
         id: 2,
-        name: 'Juventus',
+        name: 'React',
     },
     {
         id: 3,
-        name: 'Bayern Munich',
+        name: 'Vue',
     },
     {
         id: 4,
-        name: 'Fenerbahce',
+        name: 'Svelte',
     },
     {
         id: 5,
-        name: 'Real Madrid',
+        name: 'MongoDB',
     },
     {
         id: 6,
-        name: 'Tottenham',
+        name: 'Cuba',
     }
 ];

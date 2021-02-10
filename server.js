@@ -1,33 +1,33 @@
 const express = require("express");
 const { graphqlHTTP } = require("express-graphql");
 const { GraphQLInt, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType } = require("graphql");
-let { players, teams } = require("./data");
+let { technologies, people } = require("./data");
 
 const app = express();
 
-const PlayerType = new GraphQLObjectType({
-    name: 'Player',
-    description: 'This is a player',
+const PersonType = new GraphQLObjectType({
+    name: 'Person',
+    description: 'This is a person',
     fields: () => ({
         id: {type: GraphQLNonNull(GraphQLInt)},
         name: {type: GraphQLNonNull(GraphQLString)},
-        teamId: {type: GraphQLNonNull(GraphQLInt)},
-        team: {
-            type: TeamType,
-            resolve: (player) => teams.find(team => team.id === player.teamId) 
+        techIds: {type: GraphQLNonNull(GraphQLList(GraphQLInt))},
+        technologies: {
+            type: GraphQLList(TechType),
+            resolve: (person) => technologies.filter(tech => person.techIds.includes(tech.id)) 
         }
     })
 })
 
-const TeamType = new GraphQLObjectType({
-    name: 'Team',
-    description: 'This is a team',
+const TechType = new GraphQLObjectType({
+    name: 'Technology',
+    description: 'This is a technology',
     fields: () => ({
         id: {type: GraphQLNonNull(GraphQLInt)},
         name: {type: GraphQLNonNull(GraphQLString)},
-        players: {
-            type: GraphQLList(PlayerType), 
-            resolve: (team) => players.filter(player => player.teamId === team.id)
+        people: {
+            type: GraphQLList(PersonType), 
+            resolve: (tech) => people.filter(person => person.techIds.includes(tech.id))
         }
     })
 })
@@ -37,31 +37,31 @@ const RootQueryType = new GraphQLObjectType({
     description: 'Root Query',
     fields: () => (
         {
-            players: {
-                type: new GraphQLList(PlayerType),
-                description: 'List of All Players',
-                resolve: () => players
+            people: {
+                type: new GraphQLList(PersonType),
+                description: 'List of All People',
+                resolve: () => people
             },
-            teams: {
-                type: new GraphQLList(TeamType),
-                description: 'List of All Teams',
-                resolve: () => teams
+            technologies: {
+                type: new GraphQLList(TechType),
+                description: 'List of All Technologies',
+                resolve: () => technologies
             },
-            player: {
-                type: PlayerType,
-                description: 'Single Player',
+            person: {
+                type: PersonType,
+                description: 'Single Person',
                 args: {
                     id: {type: GraphQLNonNull(GraphQLInt)}
                 },
-                resolve: (player, args) => players.find(player => player.id === args.id)
+                resolve: (_, args) => people.find(person => person.id === args.id)
             },
-            team: {
-                type: TeamType,
-                description: 'Single Team',
+            technology: {
+                type: TechType,
+                description: 'Single Technology',
                 args: {
                     id: {type: GraphQLNonNull(GraphQLInt)}
                 },
-                resolve: (team, args) => teams.find(team => team.id === args.id)
+                resolve: (_, args) => technologies.find(tech => tech.id === args.id)
 
             }
         }
@@ -73,96 +73,96 @@ const RootMutationType = new GraphQLObjectType({
     description: 'Root Mutation',
     fields: () => (
         {
-            addPlayer: {
-                type: PlayerType,
-                description: 'Add a Player',
+            addPerson: {
+                type: PersonType,
+                description: 'Add a Person',
                 args: {
                     name: { type: GraphQLNonNull(GraphQLString) },
-                    teamId: { type: GraphQLNonNull(GraphQLInt) }, 
+                    techIds: { type: GraphQLNonNull(GraphQLList(GraphQLInt)) }, 
                 },
-                resolve: (parent, args) => {
-                    const player = {
-                        id: players.length + 1,
+                resolve: (_, args) => {
+                    const person = {
+                        id: people.length + 1,
                         name: args.name,
-                        teamId: args.teamId
-                    }
-                    players.push(player)
-                    return player
+                        techIds: args.techIds
+                    };
+                    people.push(person);
+                    return person;
                 }
             },
-            updatePlayer: {
-                type: PlayerType,
-                description: 'Update a player',
+            updatePerson: {
+                type: PersonType,
+                description: 'Update a person',
                 args: {
                     id: { type: GraphQLNonNull(GraphQLInt)},
                     name: { type: GraphQLString},
-                    teamId: { type: GraphQLInt}
+                    techIds: { type: GraphQLList(GraphQLInt)}
                 },
-                resolve: (parent, args) => {
-                    const playerIndex = players.findIndex(player => player.id === args.id);
-                    players[playerIndex] = {
+                resolve: (_, args) => {
+                    const personIndex = people.findIndex(person => person.id === args.id);
+                    people[personIndex] = {
                         id: args.id,
-                        name: args.name || players[playerIndex].name,
-                        teamId: args.teamId || players[playerIndex].teamId
+                        name: args.name || people[personIndex].name,
+                        techIds: args.techIds || people[personIndex].techIds
                     };
-                    return players[playerIndex];
+                    return people[personIndex];
                 }
             },
-            deletePlayer: {
-                type: PlayerType,
-                description: 'Delete a player',
+            deletePerson: {
+                type: PersonType,
+                description: 'Delete a person',
                 args: {
                     id: {type: GraphQLNonNull(GraphQLInt)}
                 },
-                resolve: (parent, args) => {
-                    const playerIndex = players.findIndex(player => player.id === args.id);
-                    const player = players[playerIndex];
-                    players = [...players.slice(0, playerIndex), ...players.slice(playerIndex + 1)];
-                    return player;
+                resolve: (_, args) => {
+                    const personIndex = people.findIndex(person => person.id === args.id);
+                    const person = people[personIndex];
+                    people = [...people.slice(0, personIndex), ...people.slice(personIndex + 1)];
+                    return person;
                 }
             },
-            addTeam: {
-                type: TeamType,
-                description: 'Add a new team',
+            addTechnology: {
+                type: TechType,
+                description: 'Add a new technology',
                 args: {
                     name: {type: GraphQLNonNull(GraphQLString)}
                 },
-                resolve: (parent, args) => {
-                    const team = {
-                        id: teams.length + 1,
+                resolve: (_, args) => {
+                    const tech = {
+                        id: technologies.length + 1,
                         name: args.name
                     };
-                    teams.push(team);
-                    return team;
+                    technologies.push(tech);
+                    return tech;
                 }
             },
-            updateTeam: {
-                type: TeamType,
-                description: 'Update a team',
+            updateTechnology: {
+                type: TechType,
+                description: 'Update a teachnology',
                 args: {
                     id: {type: GraphQLNonNull(GraphQLInt)},
                     name: {type: GraphQLNonNull(GraphQLString)}
                 },
-                resolve: (parent, args) => {
-                    const teamIndex = teams.findIndex(team => team.id === args.id);
-                    teams[teamIndex] = {
+                resolve: (_, args) => {
+                    const techIndex = technologies.findIndex(tech => tech.id === args.id);
+                    technologies[techIndex] = {
                         id: args.id,
                         name: args.name
                     };
-                    return teams[teamIndex];
+                    return technologies[techIndex];
                 }
             },
-            deleteTeam: {
-                type: TeamType,
-                description: 'Delete a team',
+            deleteTechnology: {
+                type: TechType,
+                description: 'Delete a technology',
                 args: {
                     id: {type: GraphQLNonNull(GraphQLInt)}
                 },
-                resolve: (parent, args) => {
-                    const teamIndex = teams.findIndex(team => team.id === args.id);
-                    const team = teams[teamIndex];
-                    teams = [...teams.slice(0, teamIndex), ...teams.slice(teamIndex+1)];
-                    return team;
+                resolve: (_, args) => {
+                    const techIndex = technologies.findIndex(tech => tech.id === args.id);
+                    const tech = technologies[techIndex];
+                    technologies = [...technologies.slice(0, techIndex), ...technologies.slice(techIndex+1)];
+                    return tech;
                 }
             },
         }
