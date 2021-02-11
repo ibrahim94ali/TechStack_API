@@ -12,6 +12,9 @@ const PostSchema = mongoose.Schema({
     },
     techId: {
         type: String, requierd: true
+    },
+    date: {
+        type: String, requierd: true
     }
 });
 

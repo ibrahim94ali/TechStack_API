@@ -32,6 +32,7 @@ const PostType = new GraphQLObjectType({
         title: {type: GraphQLNonNull(GraphQLString)},
         owner: {type: GraphQLNonNull(GraphQLString)},
         link: {type: GraphQLNonNull(GraphQLString)},
+        date: {type: GraphQLNonNull(GraphQLString)},
         techId: {type: GraphQLNonNull(GraphQLString)},
         technology: {
             type: TechType,
@@ -124,13 +125,15 @@ const RootMutationType = new GraphQLObjectType({
                     title: {type: GraphQLNonNull(GraphQLString)},
                     owner: {type: GraphQLNonNull(GraphQLString)},
                     link: {type: GraphQLNonNull(GraphQLString)},
+                    date: {type: GraphQLNonNull(GraphQLString)},
                     techId: {type: GraphQLNonNull(GraphQLString)}
                 },
-                resolve: (_, {title, owner, link, techId}) => {
+                resolve: (_, {title, owner, link, date, techId}) => {
                     const post = new Post({
                         title,
                         owner,
                         link,
+                        date,
                         techId
                     });
                     return post.save();
@@ -144,14 +147,16 @@ const RootMutationType = new GraphQLObjectType({
                     title: {type: GraphQLNonNull(GraphQLString)},
                     owner: {type: GraphQLNonNull(GraphQLString)},
                     link: {type: GraphQLNonNull(GraphQLString)},
+                    date: {type: GraphQLNonNull(GraphQLString)},
                     techId: {type: GraphQLNonNull(GraphQLID)},
                 },
-                resolve: (_, {id, title, owner, link, techId}) => {
+                resolve: (_, {id, title, owner, link, date, techId}) => {
                   const newPost = new Post({
                       _id: id,
                       title,
                       owner,
                       link,
+                      date,
                       techId
                   })
                   return Post.findByIdAndUpdate({_id: id}, newPost);
