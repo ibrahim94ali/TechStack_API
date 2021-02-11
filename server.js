@@ -1,6 +1,6 @@
 const express = require("express");
 const { graphqlHTTP } = require("express-graphql");
-const { GraphQLID, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType, GraphQLBoolean } = require("graphql");
+const { GraphQLID, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType } = require("graphql");
 const mongoose = require("mongoose");
 
 const Post = require('./models/post');
@@ -105,8 +105,7 @@ const RootMutationType = new GraphQLObjectType({
                         _id: id,
                         name
                     });
-
-                    return Technology.updateOne({_id:id}, newTech);
+                    return Technology.findByIdAndUpdate({_id:id}, newTech);
                 }
             },
             deleteTechnology: {
@@ -115,9 +114,8 @@ const RootMutationType = new GraphQLObjectType({
                 args: {
                     id: {type: GraphQLNonNull(GraphQLID)}
                 },
-                resolve: (_, {id}) => {
-                    return Technology.deleteOne({_id: id})
-                }
+                resolve: (_, {id}) =>Technology.findByIdAndRemove(id)
+                
             },
             addPost: {
                 type: PostType,
@@ -156,7 +154,7 @@ const RootMutationType = new GraphQLObjectType({
                       link,
                       techId
                   })
-                  return Post.updateOne({_id: id}, newPost);
+                  return Post.findByIdAndUpdate({_id: id}, newPost);
                 }
             },
             deletePost: {
@@ -165,9 +163,7 @@ const RootMutationType = new GraphQLObjectType({
                 args: {
                     id: {type: GraphQLNonNull(GraphQLID)}
                 },
-                resolve: (_, {id}) => {
-                    return Post.deleteOne({_id: id});
-                }
+                resolve: (_, {id}) => Post.findByIdAndDelete(id)
             }
         }
     )
