@@ -2,11 +2,16 @@ const express = require("express");
 const { graphqlHTTP } = require("express-graphql");
 const { GraphQLID, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType } = require("graphql");
 const mongoose = require("mongoose");
+const cors = require("cors")
 
 const Post = require('./models/post');
 const Technology = require('./models/technology');
 
 const app = express();
+
+app.use(cors());
+app.options('*', cors());
+
 mongoose.connect("mongodb+srv://ibra:Bt0r0aldfC1FK66r@cluster0.4nfgi.mongodb.net/test?retryWrites=true&w=majority")
 .then(() => console.log('Connected to the db'))
 .catch((err) => console.log('Error', err));
@@ -126,7 +131,7 @@ const RootMutationType = new GraphQLObjectType({
                     owner: {type: GraphQLNonNull(GraphQLString)},
                     link: {type: GraphQLNonNull(GraphQLString)},
                     date: {type: GraphQLNonNull(GraphQLString)},
-                    techId: {type: GraphQLNonNull(GraphQLString)}
+                    techId: {type: GraphQLNonNull(GraphQLID)}
                 },
                 resolve: (_, {title, owner, link, date, techId}) => {
                     const post = new Post({
@@ -184,4 +189,4 @@ app.use('/graphql', graphqlHTTP({
     graphiql: true
 }));
 
-app.listen(5000, () => console.log('Server is runnning...'))
+app.listen(4000, () => console.log('Server is runnning...'))
