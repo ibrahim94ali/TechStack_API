@@ -153,16 +153,14 @@ const RootMutationType = new GraphQLObjectType({
                     owner: {type: GraphQLNonNull(GraphQLString)},
                     link: {type: GraphQLNonNull(GraphQLString)},
                     date: {type: GraphQLNonNull(GraphQLString)},
-                    techId: {type: GraphQLNonNull(GraphQLID)},
                 },
-                resolve: (_, {id, title, owner, link, date, techId}) => {
+                resolve: (_, {id, title, owner, link, date}) => {
                   const newPost = new Post({
                       _id: id,
                       title,
                       owner,
                       link,
-                      date,
-                      techId
+                      date
                   })
                   return Post.findByIdAndUpdate({_id: id}, newPost);
                 }
