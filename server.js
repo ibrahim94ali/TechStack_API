@@ -24,7 +24,7 @@ const TechType = new GraphQLObjectType({
         name: {type: GraphQLNonNull(GraphQLString)},
         posts: {
             type: GraphQLList(PostType),
-            resolve: (tech) => Post.find({techId: tech.id})
+            resolve: async (tech) => await Post.find({techId: tech.id}).sort({ date: -1 })
         }
     })
 })
@@ -41,7 +41,7 @@ const PostType = new GraphQLObjectType({
         techId: {type: GraphQLNonNull(GraphQLString)},
         technology: {
             type: TechType,
-            resolve: (post) => Technology.findById({_id: post.techId})
+            resolve: async (post) => await Technology.findById({_id: post.techId})
         }
     })
 })
@@ -54,7 +54,7 @@ const RootQueryType = new GraphQLObjectType({
             technologies: {
                 type: new GraphQLList(TechType),
                 description: 'List of All Technologies',
-                resolve: () => Technology.find()
+                resolve: async () => await Technology.find().sort({name: 1})
             },
             technology: {
                 type: TechType,
@@ -62,20 +62,20 @@ const RootQueryType = new GraphQLObjectType({
                 args: {
                     id: {type: GraphQLNonNull(GraphQLID)}
                 },
-                resolve: (_, {id}) => Technology.findOne({_id: id})
+                resolve: async (_, {id}) => await Technology.findOne({_id: id})
 
             },
             posts: {
                 type: new GraphQLList(PostType),
                 description: 'List of all posts',
-                resolve: () => Post.find()
+                resolve: async () => await Post.find()
 
             },
             post: {
                 type: PostType,
                 description: 'Single post',
                 args: {id: {type: GraphQLNonNull(GraphQLID)}},
-                resolve: (_, {id}) => Post.findOne({_id: id})
+                resolve: async (_, {id}) => await Post.findOne({_id: id})
             }
         }
     )
@@ -92,11 +92,11 @@ const RootMutationType = new GraphQLObjectType({
                 args: {
                     name: {type: GraphQLNonNull(GraphQLString)}
                 },
-                resolve: (_, args) => {
+                resolve: async (_, args) => {
                     const tech = new Technology({
                         name: args.name
                     });
-                    return tech.save();
+                    return await tech.save();
                 }
             },
             updateTechnology: {
@@ -106,12 +106,12 @@ const RootMutationType = new GraphQLObjectType({
                     id: {type: GraphQLNonNull(GraphQLID)},
                     name: {type: GraphQLNonNull(GraphQLString)}
                 },
-                resolve: (_, {id, name}) => {
+                resolve: async (_, {id, name}) => {
                     const newTech = new Technology({
                         _id: id,
                         name
                     });
-                    return Technology.findByIdAndUpdate({_id:id}, newTech);
+                    return await Technology.findByIdAndUpdate({_id:id}, newTech);
                 }
             },
             deleteTechnology: {
@@ -120,7 +120,11 @@ const RootMutationType = new GraphQLObjectType({
                 args: {
                     id: {type: GraphQLNonNull(GraphQLID)}
                 },
-                resolve: (_, {id}) =>Technology.findByIdAndRemove(id)
+                resolve: async (_, {id}) => {
+                    const response = await Technology.findByIdAndRemove(id);
+                    await Post.deleteMany({techId: id});
+                    return response;
+                }
                 
             },
             addPost: {
@@ -133,7 +137,7 @@ const RootMutationType = new GraphQLObjectType({
                     date: {type: GraphQLNonNull(GraphQLString)},
                     techId: {type: GraphQLNonNull(GraphQLID)}
                 },
-                resolve: (_, {title, owner, link, date, techId}) => {
+                resolve: async (_, {title, owner, link, date, techId}) => {
                     const post = new Post({
                         title,
                         owner,
@@ -141,7 +145,7 @@ const RootMutationType = new GraphQLObjectType({
                         date,
                         techId
                     });
-                    return post.save();
+                    return await post.save();
                 }
             },
             updatePost: {
@@ -154,7 +158,7 @@ const RootMutationType = new GraphQLObjectType({
                     link: {type: GraphQLNonNull(GraphQLString)},
                     date: {type: GraphQLNonNull(GraphQLString)},
                 },
-                resolve: (_, {id, title, owner, link, date}) => {
+                resolve: async (_, {id, title, owner, link, date}) => {
                   const newPost = new Post({
                       _id: id,
                       title,
@@ -162,7 +166,7 @@ const RootMutationType = new GraphQLObjectType({
                       link,
                       date
                   })
-                  return Post.findByIdAndUpdate({_id: id}, newPost);
+                  return await Post.findByIdAndUpdate({_id: id}, newPost);
                 }
             },
             deletePost: {
@@ -171,7 +175,7 @@ const RootMutationType = new GraphQLObjectType({
                 args: {
                     id: {type: GraphQLNonNull(GraphQLID)}
                 },
-                resolve: (_, {id}) => Post.findByIdAndDelete(id)
+                resolve: async (_, {id}) => await Post.findByIdAndDelete(id)
             }
         }
     )
