@@ -1,0 +1,7 @@
+{
+    "env": {
+        "MONGO_USER": "ibra",
+        "MONGO_PASS": "OPqyzkKk19SQWkvi",
+        "MONGO_DB": "testDB"
+    }
+}
