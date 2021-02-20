@@ -66,7 +66,18 @@ const RootQueryType = new GraphQLObjectType({
             apartments: {
                 type: new GraphQLList(ApartmentType),
                 description: 'List of all apartments',
-                resolve: () => Apartment.find()
+                args: {
+                    city: {type: GraphQLString},
+                    minPrice: {type: GraphQLInt},
+                    maxPrice: {type: GraphQLInt},
+                    sortBy: {type: GraphQLString},
+                    sortOrder: {type: GraphQLInt},
+                },
+                resolve: (_, {city, minPrice, maxPrice, sortBy, sortOrder}) => {
+                    const filters = Object.assign({}, city && {city}, minPrice && {price: {$gte: minPrice}}, maxPrice && {price: {$lte: maxPrice}});
+
+                    return Apartment.find(filters).sort({[sortBy || 'date']: sortOrder || -1});
+                }
 
             },
         }
