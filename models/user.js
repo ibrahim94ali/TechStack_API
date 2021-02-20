@@ -20,6 +20,9 @@ const UserSchema = mongoose.Schema({
     roles: {
         type: [String], requierd: true
     },
+    verified: {
+        type: Boolean, required: true
+    }
 });
 
 UserSchema.plugin(uniqueValidator);

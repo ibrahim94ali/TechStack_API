@@ -1,6 +1,6 @@
 const express = require("express");
 const { graphqlHTTP } = require("express-graphql");
-const { GraphQLID, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType, GraphQLInt, GraphQLFloat } = require("graphql");
+const { GraphQLID, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType, GraphQLInt, GraphQLFloat, GraphQLBoolean } = require("graphql");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -24,11 +24,12 @@ const UserType = new GraphQLObjectType({
     fields: () => ({
         id: {type: GraphQLNonNull(GraphQLID)},
         email: {type: GraphQLNonNull(GraphQLString)},
-        token: {type: GraphQLNonNull(GraphQLString)},
+        token: {type: GraphQLString},
         phone: {type: GraphQLNonNull(GraphQLString)},
         name: {type: GraphQLNonNull(GraphQLString)},
         surname: {type: GraphQLNonNull(GraphQLString)},
         roles: {type: GraphQLNonNull(GraphQLList(GraphQLString))},
+        verified: {type: GraphQLNonNull(GraphQLBoolean)},
     })
 })
 
@@ -68,6 +69,15 @@ const RootQueryType = new GraphQLObjectType({
                 resolve: () => Apartment.find()
 
             },
+        }
+    )
+})
+
+const RootMutationType = new GraphQLObjectType({
+    name: 'Mutation',
+    description: 'Root Mutation',
+    fields: () => (
+        {
             login: {
                 type: UserType,
                 description: 'Login a user',
@@ -85,28 +95,15 @@ const RootQueryType = new GraphQLObjectType({
                     if(truePass) {
                         const token = jwt.sign({email: user.email, userId: user._id}, process.env.JWT_SECRET, {expiresIn: "7 days"});
                         return {
-                            email: user.email,
+                            ...user._doc,
                             id: user._id,
-                            token,
-                            name: user.name,
-                            surname: user.surname,
-                            phone: user.phone,
-                            roles: user.roles
+                            token
                         };
                     } else {
                         throw Error("Password is invalid");
                     }
                 }
-            }
-        }
-    )
-})
-
-const RootMutationType = new GraphQLObjectType({
-    name: 'Mutation',
-    description: 'Root Mutation',
-    fields: () => (
-        {
+            },
             register: {
                 type: UserType,
                 description: 'Add a new user',
@@ -125,9 +122,67 @@ const RootMutationType = new GraphQLObjectType({
                         phone,
                         name,
                         surname,
-                        roles: ['Admin']
+                        roles: ['Admin'],
+                        verified: false
                     });
-                    return user.save();
+                    const dbUser = await user.save();
+                    const token = jwt.sign({email, userId: dbUser._id}, process.env.JWT_SECRET, {expiresIn: "7 days"});
+                    return {
+                        ...dbUser._doc,
+                        id: user._id,
+                        token
+                    };
+                }
+            },
+            verifyUser: {
+                type: UserType,
+                description: 'Verify a user',
+                args: {
+                    email: {type: GraphQLNonNull(GraphQLString)}
+                },
+                resolve: async (_, {email}) => {
+                    const user = await User.findOneAndUpdate({email}, {verified: true});
+                    if (!user) {
+                        throw Error("Email is not registered");
+                    }
+                    return {
+                        ...user._doc,
+                        id: user._id,
+                        verified: true
+                    };
+                }
+            },
+            updateUser: {
+                type: UserType,
+                description: 'Update a user',
+                args: {
+                    phone: {type: GraphQLString},
+                    name: {type: GraphQLString},
+                    surname: {type: GraphQLString}
+                },
+                resolve: async (_, {phone, name, surname}, {userId}) => {
+                    if (!userId) {
+                        throw Error("User token is invalid");
+                    }
+                    const newFields = Object.assign({}, phone && {phone}, name && {name}, surname && {surname});
+                    const user = await User.findByIdAndUpdate(userId, newFields);
+                    return {
+                        ...user._doc,
+                        ...newFields,
+                        id: user._id,
+                    }
+                }
+            },
+            deleteUser: {
+                type: UserType,
+                description: 'Delete a user',
+                resolve: async (_, __, {userId}) => {
+                    if (!userId) {
+                        throw Error("User token is invalid");
+                    }
+                    const user = await User.findByIdAndDelete(userId);
+                    await Apartment.deleteMany({ownerId: userId});
+                    return user;
                 }
             },
             addApartment: {
@@ -165,6 +220,56 @@ const RootMutationType = new GraphQLObjectType({
                         ownerId: userId,
                     });
                     return apartment.save();
+                }
+            },
+            updateApartment: {
+                type: ApartmentType,
+                description: 'Update an apartment',
+                args: {
+                    id: {type: GraphQLNonNull(GraphQLID)},
+                    title: {type: GraphQLString},
+                    details: {type: GraphQLString},
+                    date: {type: GraphQLString},
+                    geolocation: {type: GraphQLList(GraphQLFloat)},
+                    address: {type: GraphQLString},
+                    city: {type: GraphQLString},
+                    price: {type: GraphQLInt},
+                    type: {type: GraphQLString},
+                    photos: {type: GraphQLList(GraphQLString)},
+                    msquare: {type: GraphQLInt},
+                    roomCount: {type: GraphQLInt},
+                },
+                resolve: async (_, {id, title, details, date, geolocation, address, city, price, type, photos, msquare, roomCount}, {userId}) => {
+                    if (!userId) {
+                        throw Error("User token is invalid");
+                    }
+                    const newFields = Object.assign({}, title && {title}, details && {details}, date && {date}, geolocation && {geolocation}, address && {address}, city && {city}, price && {price}, type && {type}, photos && {photos}, msquare && {msquare}, roomCount && {roomCount});
+                    const selectedApartment = await Apartment.findById(id);
+
+                    if (selectedApartment._doc.ownerId.toString() !== userId.toString()) {
+                        throw Error("This apartment is not assigned to this user");
+                    }
+                    
+                    const apartment = await Apartment.findByIdAndUpdate(id, newFields);
+                    return {
+                        ...apartment._doc,
+                        ...newFields,
+                        id: apartment._id,
+                    }
+
+                }
+            },
+            deleteApartment: {
+                type: ApartmentType,
+                description: 'Delete an apartment',
+                args: {
+                    id: {type: GraphQLNonNull(GraphQLID)},
+                },
+                resolve: async (_, {id}, {userId}) => {
+                    if (!userId) {
+                        throw Error('User token is not valid!');
+                    }
+                    return Apartment.findByIdAndDelete(id);
                 }
             },
         }
