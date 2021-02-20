@@ -2,6 +2,7 @@
     "env": {
         "MONGO_USER": "ibra",
         "MONGO_PASS": "OPqyzkKk19SQWkvi",
-        "MONGO_DB": "testDB"
+        "MONGO_DB": "testDB",
+        "JWT_SECRET": "sj[VE&P5emsJ421sdzpq2%as>r6f9gwt21!"
     }
 }

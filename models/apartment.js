@@ -8,7 +8,7 @@ const ApartmentSchema = mongoose.Schema({
         type: String, required: true
     },
     ownerId: {
-        type: String, required: true
+        type: mongoose.Schema.Types.ObjectId, ref: "User", required: true
     },
     date: {
         type: String, requierd: true
@@ -17,6 +17,9 @@ const ApartmentSchema = mongoose.Schema({
         type: [Number], required: true
     },
     address: {
+        type: String, required: true
+    },
+    city: {
         type: String, required: true
     },
     price: {

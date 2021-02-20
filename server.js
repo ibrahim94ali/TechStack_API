@@ -3,7 +3,9 @@ const { graphqlHTTP } = require("express-graphql");
 const { GraphQLID, GraphQLString, GraphQLList, GraphQLNonNull, GraphQLSchema, GraphQLObjectType, GraphQLInt, GraphQLFloat } = require("graphql");
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const cors = require("cors")
+const checkAuth = require("./middleware/checkAuth");
 
 const User = require('./models/user');
 const Apartment = require('./models/apartment');
@@ -22,6 +24,7 @@ const UserType = new GraphQLObjectType({
     fields: () => ({
         id: {type: GraphQLNonNull(GraphQLID)},
         email: {type: GraphQLNonNull(GraphQLString)},
+        token: {type: GraphQLNonNull(GraphQLString)},
         phone: {type: GraphQLNonNull(GraphQLString)},
         name: {type: GraphQLNonNull(GraphQLString)},
         surname: {type: GraphQLNonNull(GraphQLString)},
@@ -40,6 +43,7 @@ const ApartmentType = new GraphQLObjectType({
         date: {type: GraphQLNonNull(GraphQLString)},
         geolocation: {type: GraphQLNonNull(GraphQLList(GraphQLFloat))},
         address: {type: GraphQLNonNull(GraphQLString)},
+        city: {type: GraphQLNonNull(GraphQLString)},
         price: {type: GraphQLNonNull(GraphQLInt)},
         type: {type: GraphQLNonNull(GraphQLString)},
         photos: {type: GraphQLNonNull(GraphQLList(GraphQLString))},
@@ -56,14 +60,44 @@ const RootQueryType = new GraphQLObjectType({
             users: {
                 type: new GraphQLList(UserType),
                 description: 'List of all users',
-                resolve: async () => await User.find()
+                resolve: () => User.find()
             },
             apartments: {
                 type: new GraphQLList(ApartmentType),
                 description: 'List of all apartments',
-                resolve: async () => await Apartment.find()
+                resolve: () => Apartment.find()
 
             },
+            login: {
+                type: UserType,
+                description: 'Login a user',
+                args: {
+                    email: {type: GraphQLNonNull(GraphQLString)},
+                    password: {type: GraphQLNonNull(GraphQLString)},
+                },
+                resolve: async (_, {email, password}) => {
+                    const user = await User.findOne({email});
+                    if(!user) {
+                        throw Error("Email is invaid");
+                    }
+                    const truePass = await bcrypt.compare(password, user.password);
+
+                    if(truePass) {
+                        const token = jwt.sign({email: user.email, userId: user._id}, process.env.JWT_SECRET, {expiresIn: "7 days"});
+                        return {
+                            email: user.email,
+                            id: user._id,
+                            token,
+                            name: user.name,
+                            surname: user.surname,
+                            phone: user.phone,
+                            roles: user.roles
+                        };
+                    } else {
+                        throw Error("Password is invalid");
+                    }
+                }
+            }
         }
     )
 })
@@ -73,7 +107,7 @@ const RootMutationType = new GraphQLObjectType({
     description: 'Root Mutation',
     fields: () => (
         {
-            addUser: {
+            register: {
                 type: UserType,
                 description: 'Add a new user',
                 args: {
@@ -93,7 +127,7 @@ const RootMutationType = new GraphQLObjectType({
                         surname,
                         roles: ['Admin']
                     });
-                    return await user.save();
+                    return user.save();
                 }
             },
             addApartment: {
@@ -102,32 +136,35 @@ const RootMutationType = new GraphQLObjectType({
                 args: {
                     title: {type: GraphQLNonNull(GraphQLString)},
                     details: {type: GraphQLNonNull(GraphQLString)},
-                    ownerId: {type: GraphQLNonNull(GraphQLID)},
                     date: {type: GraphQLNonNull(GraphQLString)},
                     geolocation: {type: GraphQLNonNull(GraphQLList(GraphQLFloat))},
                     address: {type: GraphQLNonNull(GraphQLString)},
+                    city: {type: GraphQLNonNull(GraphQLString)},
                     price: {type: GraphQLNonNull(GraphQLInt)},
                     type: {type: GraphQLNonNull(GraphQLString)},
                     photos: {type: GraphQLNonNull(GraphQLList(GraphQLString))},
                     msquare: {type: GraphQLNonNull(GraphQLInt)},
                     roomCount: {type: GraphQLNonNull(GraphQLInt)},
                 },
-                resolve: async (_, {title, details, ownerId, date, geolocation, address, price, type, photos, msquare, roomCount}) => {
+                resolve: async (_, {title, details, date, geolocation, address, city, price, type, photos, msquare, roomCount}, {userId}) => {
+                    if (!userId) {
+                        throw Error('User token is not valid!');
+                    }
                     const apartment = new Apartment({
                         title,
                         details,
-                        ownerId,
                         date,
                         geolocation,
                         address,
+                        city,
                         price,
                         type,
                         photos,
                         msquare,
-                        roomCount
-                       
+                        roomCount,
+                        ownerId: userId,
                     });
-                    return await apartment.save();
+                    return apartment.save();
                 }
             },
         }
@@ -137,7 +174,9 @@ const RootMutationType = new GraphQLObjectType({
 const schema = new GraphQLSchema({
     query: RootQueryType,
     mutation: RootMutationType
-})
+});
+
+app.use(checkAuth);
 
 app.use('/graphql', graphqlHTTP({
     schema: schema,
