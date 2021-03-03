@@ -149,24 +149,24 @@ const RootMutationType = new GraphQLObjectType({
                     };
                 }
             },
-            verifyUser: {
-                type: UserType,
-                description: 'Verify a user',
-                args: {
-                    email: {type: GraphQLNonNull(GraphQLString)}
-                },
-                resolve: async (_, {email}) => {
-                    const user = await User.findOneAndUpdate({email}, {verified: true});
-                    if (!user) {
-                        throw Error("Email is not registered");
-                    }
-                    return {
-                        ...user._doc,
-                        id: user._id,
-                        verified: true
-                    };
-                }
-            },
+            // verifyUser: {
+            //     type: UserType,
+            //     description: 'Verify a user',
+            //     args: {
+            //         email: {type: GraphQLNonNull(GraphQLString)}
+            //     },
+            //     resolve: async (_, {email}) => {
+            //         const user = await User.findOneAndUpdate({email}, {verified: true});
+            //         if (!user) {
+            //             throw Error("Email is not registered");
+            //         }
+            //         return {
+            //             ...user._doc,
+            //             id: user._id,
+            //             verified: true
+            //         };
+            //     }
+            // },
             updateUser: {
                 type: UserType,
                 description: 'Update a user',
