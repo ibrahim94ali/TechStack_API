@@ -12,7 +12,9 @@ const app = express();
 app.use(cors());
 app.options('*', cors());
 
-mongoose.connect("mongodb+srv://ibra:Bt0r0aldfC1FK66r@cluster0.4nfgi.mongodb.net/test?retryWrites=true&w=majority")
+const PORT = process.env.PORT || 3000;
+
+mongoose.connect(`mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASS}@cluster0.4nfgi.mongodb.net/${process.env.MONGO_DB}?retryWrites=true&w=majority`)
 .then(() => console.log('Connected to the db'))
 .catch((err) => console.log('Error', err));
 
@@ -191,4 +193,4 @@ app.use('/graphql', graphqlHTTP({
     graphiql: true
 }));
 
-app.listen(4000, () => console.log('Server is runnning...'))
+app.listen(PORT, () => console.log('Server is runnning...'))
